@@ -1,0 +1,60 @@
+# https://testdriven.io/blog/dockerizing-django-with-postgres-gunicorn-and-nginx/
+version: '3.8'
+
+services:
+  #Python App
+  web:
+    build: 
+      context: ./app
+      dockerfile: Dockerfile
+    command: python manage.py runserver 0.0.0.0:8000
+    # command: gunicorn hello_django.wsgi:application --bind 0.0.0.0:8000
+    # volumes:
+    #  - static_volume:/home/app/web/staticfiles
+    expose:
+      - 8000
+    env_file:
+      - ./.env.dev
+    depends_on:
+      - db
+      
+  #Nginx Service
+  nginx:
+    build: ./nginx
+    # volumes:
+    #  - static_volume:/home/app/web/staticfiles
+    ports:
+      - 1337:80
+    depends_on:
+      - web
+  
+  #Postgres Service
+  db:
+    image: postgres:12.0-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=hello_django
+      - POSTGRES_PASSWORD=hello_django
+      - POSTGRES_DB=hello_django_dev
+    ports:
+      - 5432:5432
+  
+  #PgAdmin Service
+  pgadmin:
+    image: dpage/pgadmin4:4.27
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@linuxhint.com
+      PGADMIN_DEFAULT_PASSWORD: secret
+      PGADMIN_LISTEN_PORT: 80
+    ports:
+    - 5050:80
+    volumes:
+    - pgadmin-data:/var/lib/pgadmin
+    links:
+    - "db:pgsql-server"
+
+volumes:
+  postgres_data:
+  pgadmin-data:
+  # static_volume:
